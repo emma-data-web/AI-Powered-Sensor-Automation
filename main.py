@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 import pandas as pd
 import joblib
 from datetime import datetime
-
-from .database import Base, engine, SessionLocal
-from .models import SensorReading
-from .utils import save_reading
+from feature_engineering import extract_time_features
+from database import Base, engine, SessionLocal
+from models import SensorReading
+from utils import save_reading
 
 
 Base.metadata.create_all(bind=engine)

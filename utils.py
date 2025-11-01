@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from .models import SensorReading
+from models import SensorReading
 
 def save_reading(db: Session, data: dict, prediction: float):
     reading = SensorReading(
