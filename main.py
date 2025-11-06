@@ -9,10 +9,10 @@ from database import Base, engine, SessionLocal
 from models import SensorReading
 from utils import save_reading
 
-# Load pipeline once
+
 pipeline = joblib.load("sensor_model.pkl")
 
-# Create DB tables
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IoT Sensor Prediction API")
@@ -24,19 +24,19 @@ def get_db():
     finally:
         db.close()
 
-# ---------------------- PREDICTION ENDPOINT ---------------------- #
+
 @app.post("/predict")
 async def predict(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
 
-        # Convert input to DataFrame
+        
         df = pd.DataFrame([data])
 
-        # Predict
+       
         prediction = pipeline.predict(df)[0]
 
-        # Save input and prediction to DB
+        
         save_reading(db, data, float(prediction))
 
         return {
@@ -49,12 +49,12 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-# ---------------------- DASHBOARD ENDPOINT ---------------------- #
+# DASHBOARD 
 @app.get("/readings", response_class=HTMLResponse)
 def get_readings(db: Session = Depends(get_db)):
     readings = db.query(SensorReading).all()
 
-    # Build the table
+    # Build the table, this is just to test, later i will do something better una no vex, emmy!
     html = """
     <html>
     <head>
