@@ -17,6 +17,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IoT Sensor Prediction API")
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -25,18 +26,17 @@ def get_db():
         db.close()
 
 
+
 @app.post("/predict")
 async def predict(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
 
-        
+        # Convert input to DataFrame
         df = pd.DataFrame([data])
-
-       
         prediction = pipeline.predict(df)[0]
 
-        
+        # Save data + prediction
         save_reading(db, data, float(prediction))
 
         return {
@@ -49,77 +49,61 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-# DASHBOARD 
+
+#Dashboard
 @app.get("/readings", response_class=HTMLResponse)
 def get_readings(db: Session = Depends(get_db)):
-    readings = db.query(SensorReading).all()
+    try:
+        readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(50).all()  # Show only latest 50
 
-    # Build the table, this is just to test, later i will do something better una no vex, emmy!
-    html = """
-    <html>
-    <head>
-        <title>Sensor Dashboard</title>
-        <meta http-equiv="refresh" content="5"> <!-- Auto-refresh every 5s -->
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f7f7f7;
-                padding: 20px;
-            }
-            h1 {
-                color: #333;
-            }
-            table {
-                border-collapse: collapse;
-                width: 100%;
-                background: white;
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            }
-            th, td {
-                border: 1px solid #ddd;
-                padding: 10px;
-                text-align: center;
-            }
-            th {
-                background-color: #4CAF50;
-                color: white;
-            }
-            tr:nth-child(even) {
-                background-color: #f2f2f2;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Live Sensor Predictions</h1>
-        <p>Auto-refreshing every 5 seconds...</p>
-        <table>
-            <tr>
-                <th>ID</th>
-                <th>DHT_TEMP_C</th>
-                <th>DHT_RH</th>
-                <th>BME_TEMP_C</th>
-                <th>BME_RH</th>
-                <th>Pressure_hPa</th>
-                <th>RH_ERROR_pred</th>
-            </tr>
-    """
-
-    for r in readings:
-        html += f"""
-        <tr>
-            <td>{r.id}</td>
-            <td>{r.DHT_TEMP_C}</td>
-            <td>{r.DHT_RH}</td>
-            <td>{r.BME_TEMP_C}</td>
-            <td>{r.BME_RH}</td>
-            <td>{r.Pressure_hPa}</td>
-            <td>{r.RH_ERROR_pred}</td>
-        </tr>
+        html = """
+        <html>
+        <head>
+            <title>Sensor Dashboard</title>
+            <meta http-equiv="refresh" content="5"> <!-- Auto-refresh every 5s -->
+            <style>
+                body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
+                h1 { color: #333; }
+                table { border-collapse: collapse; width: 100%; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+                th { background-color: #4CAF50; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            <h1>Live Sensor Predictions</h1>
+            <p>Auto-refreshing every 5 seconds...</p>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>DHT_TEMP_C</th>
+                    <th>DHT_RH</th>
+                    <th>BME_TEMP_C</th>
+                    <th>BME_RH</th>
+                    <th>Pressure_hPa</th>
+                    <th>RH_ERROR_pred</th>
+                </tr>
         """
 
-    html += """
-        </table>
-    </body>
-    </html>
-    """
-    return html
+        for r in readings:
+            html += f"""
+            <tr>
+                <td>{r.id}</td>
+                <td>{r.DHT_TEMP_C}</td>
+                <td>{r.DHT_RH}</td>
+                <td>{r.BME_TEMP_C}</td>
+                <td>{r.BME_RH}</td>
+                <td>{r.Pressure_hPa}</td>
+                <td>{r.RH_ERROR_pred}</td>
+            </tr>
+            """
+
+        html += """
+            </table>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading readings: {str(e)}")
