@@ -8,7 +8,7 @@ def save_reading(db: Session, data: dict, prediction: float):
         BME_TEMP_C=data.get("BME_TEMP_C"),
         BME_RH=data.get("BME_RH"),
         Pressure_hPa=data.get("Pressure_hPa"),
-        RH_ERROR_pred=prediction
+        RH_ERROR_pred= prediction
     )
     db.add(reading)
     db.commit()
