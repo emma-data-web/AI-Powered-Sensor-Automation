@@ -6,7 +6,6 @@ class SensorReading(Base):
     __tablename__ = "sensor_readings"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
     DHT_TEMP_C = Column(Float)
     DHT_RH = Column(Float)
     BME_TEMP_C = Column(Float)
