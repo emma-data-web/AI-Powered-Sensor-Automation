@@ -72,6 +72,7 @@ def get_readings(db: Session = Depends(get_db)):
             <p>Auto-refreshing every 5 seconds...</p>
             <table>
                 <tr>
+                    <th>Created At</th>
                     <th>ID</th>
                     <th>DHT_TEMP_C</th>
                     <th>DHT_RH</th>
@@ -85,6 +86,7 @@ def get_readings(db: Session = Depends(get_db)):
         for r in readings:
             html += f"""
             <tr>
+                <td>{r.created_at}</td>
                 <td>{r.id}</td>
                 <td>{r.DHT_TEMP_C}</td>
                 <td>{r.DHT_RH}</td>
