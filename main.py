@@ -25,16 +25,16 @@ def get_db():
     finally:
         db.close()
 
-
 @app.post("/predict")
-def predict(request: Request, db: Session = Depends(get_db)):
+async def predict(request: Request, db: Session = Depends(get_db)):
     try:
-        data = request.json() if hasattr(request, "json") else {}
+        data = await request.json()  
+
         df = pd.DataFrame([data])
+
         prediction = pipeline.predict(df)[0]
 
-        # Save the reading synchronously
-        save_reading(data, float(prediction))
+        save_reading(data, float(prediction))  
 
         return {
             "status": "success",
