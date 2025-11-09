@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
 import pandas as pd
 import joblib
-from datetime import datetime
 
-from database import Base, engine, SessionLocal
+from database import database, metadata
 from models import SensorReading
 from utils import save_reading
 
@@ -13,54 +12,50 @@ from utils import save_reading
 pipeline = joblib.load("sensor_model.pkl")
 
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="IoT Sensor Prediction API")
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+    
+    await database.execute(f"CREATE TABLE IF NOT EXISTS sensor_readings (id SERIAL PRIMARY KEY)")
 
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
 
 
 @app.post("/predict")
-async def predict(request: Request, db: Session = Depends(get_db)):
+async def predict(request: Request):
     try:
         data = await request.json()
-
-        # Convert input to DataFrame
         df = pd.DataFrame([data])
         prediction = pipeline.predict(df)[0]
 
-        # Save data + prediction
-        save_reading(db, data, float(prediction))
+        await save_reading(data, float(prediction))
 
         return {
             "status": "success",
             "received_data": data,
             "prediction": float(prediction),
-            "message": "Prediction completed and saved."
+            "message": "Prediction completed and saved, jeff and agnes let me rest."
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-
-#Dashboard
+# Dashboard
 @app.get("/readings", response_class=HTMLResponse)
-def get_readings(db: Session = Depends(get_db)):
+async def get_readings():
     try:
-        readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(50).all()  # Show only latest 50
+        query = SensorReading.select().order_by(SensorReading.c.id.desc()).limit(50)
+        readings = await database.fetch_all(query)
 
         html = """
         <html>
         <head>
             <title>Sensor Dashboard</title>
-            <meta http-equiv="refresh" content="5"> <!-- Auto-refresh every 5s -->
+            <meta http-equiv="refresh" content="5">
             <style>
                 body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
                 h1 { color: #333; }
@@ -88,13 +83,13 @@ def get_readings(db: Session = Depends(get_db)):
         for r in readings:
             html += f"""
             <tr>
-                <td>{r.id}</td>
-                <td>{r.DHT_TEMP_C}</td>
-                <td>{r.DHT_RH}</td>
-                <td>{r.BME_TEMP_C}</td>
-                <td>{r.BME_RH}</td>
-                <td>{r.Pressure_hPa}</td>
-                <td>{r.RH_ERROR_pred}</td>
+                <td>{r['id']}</td>
+                <td>{r['DHT_TEMP_C']}</td>
+                <td>{r['DHT_RH']}</td>
+                <td>{r['BME_TEMP_C']}</td>
+                <td>{r['BME_RH']}</td>
+                <td>{r['Pressure_hPa']}</td>
+                <td>{r['RH_ERROR_pred']}</td>
             </tr>
             """
 
