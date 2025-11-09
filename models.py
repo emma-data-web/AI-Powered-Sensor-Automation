@@ -1,17 +1,16 @@
 
-from sqlalchemy import Table, Column, Integer, Float, DateTime
+from sqlalchemy import Column, Integer, Float, DateTime
 from datetime import datetime
-from database import metadata
+from db import Base
 
-SensorReading = Table(
-    "sensor_readings",
-    metadata,
-    Column("id", Integer, primary_key=True, index=True),
-    Column("DHT_TEMP_C", Float),
-    Column("DHT_RH", Float),
-    Column("BME_TEMP_C", Float),
-    Column("BME_RH", Float),
-    Column("Pressure_hPa", Float),
-    Column("RH_ERROR_pred", Float),
-    Column("created_at", DateTime, default=datetime.utcnow)
-)
+class SensorReading(Base):
+    __tablename__ = "sensor_readings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    DHT_TEMP_C = Column(Float)
+    DHT_RH = Column(Float)
+    BME_TEMP_C = Column(Float)
+    BME_RH = Column(Float)
+    Pressure_hPa = Column(Float)
+    RH_ERROR_pred = Column(Float)
+    created_at = Column(DateTime, default=datetime.utcnow)

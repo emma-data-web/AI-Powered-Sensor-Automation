@@ -1,10 +1,11 @@
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
 import pandas as pd
 import joblib
 
-from database import database, metadata
+from db import Base, engine, SessionLocal
 from models import SensorReading
 from utils import save_reading
 
@@ -12,45 +13,46 @@ from utils import save_reading
 pipeline = joblib.load("sensor_model.pkl")
 
 
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="IoT Sensor Prediction API")
 
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
-    
-    await database.execute(f"CREATE TABLE IF NOT EXISTS sensor_readings (id SERIAL PRIMARY KEY)")
-
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @app.post("/predict")
-async def predict(request: Request):
+def predict(request: Request, db: Session = Depends(get_db)):
     try:
-        data = await request.json()
+        data = request.json() if hasattr(request, "json") else {}
         df = pd.DataFrame([data])
         prediction = pipeline.predict(df)[0]
 
-        await save_reading(data, float(prediction))
+        # Save the reading synchronously
+        save_reading(data, float(prediction))
 
         return {
             "status": "success",
             "received_data": data,
             "prediction": float(prediction),
-            "message": "Prediction completed and saved, jeff and agnes let me rest."
+            "message": "Prediction completed and saved."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-# Dashboard
+# Dashboard 
 @app.get("/readings", response_class=HTMLResponse)
-async def get_readings():
+def get_readings(db: Session = Depends(get_db)):
     try:
-        query = SensorReading.select().order_by(SensorReading.c.id.desc()).limit(50)
-        readings = await database.fetch_all(query)
+        
+        readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(50).all()
 
+        
         html = """
         <html>
         <head>
@@ -83,13 +85,13 @@ async def get_readings():
         for r in readings:
             html += f"""
             <tr>
-                <td>{r['id']}</td>
-                <td>{r['DHT_TEMP_C']}</td>
-                <td>{r['DHT_RH']}</td>
-                <td>{r['BME_TEMP_C']}</td>
-                <td>{r['BME_RH']}</td>
-                <td>{r['Pressure_hPa']}</td>
-                <td>{r['RH_ERROR_pred']}</td>
+                <td>{r.id}</td>
+                <td>{r.DHT_TEMP_C}</td>
+                <td>{r.DHT_RH}</td>
+                <td>{r.BME_TEMP_C}</td>
+                <td>{r.BME_RH}</td>
+                <td>{r.Pressure_hPa}</td>
+                <td>{r.RH_ERROR_pred}</td>
             </tr>
             """
 
