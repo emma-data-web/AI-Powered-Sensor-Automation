@@ -21,4 +21,4 @@ def save_reading(data: dict, prediction: float):
     finally:
         db.close()
 
-# incase of a rerun, use a live database
+# incase of a rerun .. , use a live database
