@@ -12,4 +12,4 @@ sample_data = {
 }
 
 df = pd.DataFrame([sample_data])
-print(pipeline.predict(df))
+#print(pipeline.predict(df))

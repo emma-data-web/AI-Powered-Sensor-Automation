@@ -113,19 +113,17 @@ def get_readings(db: Session = Depends(get_db)):
 
 @app.get("/summary")
 def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
-    """
-    Returns a summary of the last `limit` sensor readings using the LLM.
-    """
+    
     try:
-        # Fetch last `limit` readings
+        
         readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(limit).all()
         
-        # Prepare data for LLM
+        
         readings_list = [
             {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
         ]
         
-        # Get summary
+        
         summary_text = summarize_recent_errors (readings_list)
         
         return {
