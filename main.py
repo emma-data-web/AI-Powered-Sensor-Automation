@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -109,30 +108,29 @@ def get_readings(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error loading readings: {str(e)}")
 
 
-
-
-@app.get("/summary")
-def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
-    
-    try:
-        
-        readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(limit).all()
-        
-        
-        readings_list = [
-            {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
-        ]
-        
-        
-        summary_text = summarize_recent_errors (readings_list)
-        
-        return {
-            "status": "success",
-            "summary": summary_text,
-            "num_readings": len(readings_list)
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+# Gemini-related endpoint commented out
+# @app.get("/summary")
+# def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
+#     
+#     try:
+#         
+#         readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(limit).all()
+#         
+#         
+#         readings_list = [
+#             {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
+#         ]
+#         
+#         
+#         summary_text = summarize_recent_errors(readings_list)
+#         
+#         return {
+#             "status": "success",
+#             "summary": summary_text,
+#             "num_readings": len(readings_list)
+#         }
+#     except Exception as e:
+#         return {
+#             "status": "error",
+#             "message": str(e)
+#         }
