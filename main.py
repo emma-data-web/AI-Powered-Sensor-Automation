@@ -8,6 +8,7 @@ import joblib
 from db import Base, engine, SessionLocal
 from models import SensorReading
 from utils import save_reading
+from llm import summarize_recent_errors 
 
 
 pipeline = joblib.load("sensor_model.pkl")
@@ -106,3 +107,34 @@ def get_readings(db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading readings: {str(e)}")
+
+
+
+
+@app.get("/summary")
+def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
+    """
+    Returns a summary of the last `limit` sensor readings using the LLM.
+    """
+    try:
+        # Fetch last `limit` readings
+        readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(limit).all()
+        
+        # Prepare data for LLM
+        readings_list = [
+            {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
+        ]
+        
+        # Get summary
+        summary_text = summarize_recent_errors (readings_list)
+        
+        return {
+            "status": "success",
+            "summary": summary_text,
+            "num_readings": len(readings_list)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
