@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import pandas as pd
 import joblib
-
+from schemas import SensorReadingOut
 from db import Base, engine, SessionLocal
 from models import SensorReading
 from utils import save_reading
@@ -147,3 +147,13 @@ def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
             "status": "error",
             "message": str(e)
         }
+
+
+
+@app.get("/new-reading", response_model=list[SensorReadingOut])
+def get_readings_json(db: Session = Depends(get_db)):
+    
+    readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(50).all()
+     
+    
+    return readings
