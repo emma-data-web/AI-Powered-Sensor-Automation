@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import pandas as pd
 import joblib
@@ -16,6 +17,15 @@ pipeline = joblib.load("sensor_model_cpu.pkl")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IoT Sensor Prediction API")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_db():
