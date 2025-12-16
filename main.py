@@ -25,6 +25,7 @@ def get_db():
     finally:
         db.close()
 
+
 @app.post("/predict")
 async def predict(request: Request, db: Session = Depends(get_db)):
     try:
@@ -45,6 +46,7 @@ async def predict(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
+
 # Dashboard 
 @app.get("/readings", response_class=HTMLResponse)
 def get_readings(db: Session = Depends(get_db)):
@@ -52,7 +54,6 @@ def get_readings(db: Session = Depends(get_db)):
         
         readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(50).all()
 
-        
         html = """
         <html>
         <head>
@@ -108,29 +109,31 @@ def get_readings(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error loading readings: {str(e)}")
 
 
-# Gemini-related endpoint commented out
-# @app.get("/summary")
-# def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
-#     
-#     try:
-#         
-#         readings = db.query(SensorReading).order_by(SensorReading.id.desc()).limit(limit).all()
-#         
-#         
-#         readings_list = [
-#             {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
-#         ]
-#         
-#         
-#         summary_text = summarize_recent_errors(readings_list)
-#         
-#         return {
-#             "status": "success",
-#             "summary": summary_text,
-#             "num_readings": len(readings_list)
-#         }
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": str(e)
-#         }
+# Gemini / LLM summary endpoint
+@app.get("/summary")
+def get_error_summary(db: Session = Depends(get_db), limit: int = 5):
+    try:
+        readings = (
+            db.query(SensorReading)
+            .order_by(SensorReading.id.desc())
+            .limit(limit)
+            .all()
+        )
+
+        readings_list = [
+            {"RH_ERROR_pred": r.RH_ERROR_pred} for r in readings
+        ]
+
+        summary_text = summarize_recent_errors(readings_list)
+
+        return {
+            "status": "success",
+            "summary": summary_text,
+            "num_readings": len(readings_list)
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
