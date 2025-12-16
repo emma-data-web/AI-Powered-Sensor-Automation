@@ -10,7 +10,7 @@ from utils import save_reading
 from llm import summarize_recent_errors 
 
 
-pipeline = joblib.load("sensor_model.pkl")
+pipeline = joblib.load("sensor_model_cpu.pkl")
 
 
 Base.metadata.create_all(bind=engine)
